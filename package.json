@@ -1,0 +1,32 @@
+{
+  "name": "book-app",
+  "version": "1.0.0",
+  "description": "Your little library",
+  "main": "app.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "live-server",
+    "build-watch": "rollup -c --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/penicilllia/book_app.git"
+  },
+  "author": "penicilllia",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/penicilllia/book_app/issues"
+  },
+  "homepage": "https://github.com/penicilllia/book_app#readme",
+  "dependencies": {
+    "rollup": "^4.18.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.5.0",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "eslint": "^9.5.0",
+    "globals": "^15.6.0",
+    "rollup-plugin-import-css": "^3.5.0"
+  }
+}
