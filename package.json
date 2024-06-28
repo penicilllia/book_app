@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/penicilllia/book_app#readme",
   "dependencies": {
+    "on-change": "^5.0.1",
     "rollup": "^4.18.0"
   },
   "devDependencies": {
