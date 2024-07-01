@@ -1146,6 +1146,127 @@
         }
     }
 
+    class Card extends DivComponent{
+        constructor(appState, cardState) {
+            super();
+            this.appState = appState;
+            this.cardState = cardState;
+        }
+
+        #addToFavorites() {
+            this.appState.favorites.push(this.cardState);
+        }
+
+        #deleteFromFavorites() {
+            this.appState.favorites = this.appState.favorites.filter(b => b.key !== this.cardState.key);
+        }
+
+        render() {
+            this.el.classList.add('card');
+            const exsistInFavorites = this.appState.favorites.find(
+                b => b.key === this.cardState.key
+            );
+            this.el.innerHTML = `
+            <div class="card__image">
+                <img src="https://covers.openlibrary.org/b/olid/${this.cardState.cover_edition_key}-M.jpg" alt="cover">
+            </div>
+            <div class="card__info">
+                <div class="card__tag">
+                    ${this.cardState.subject ? this.cardState.subject[0] : 'Not defined'}
+                </div>
+                <div class="card__name">
+                    ${this.cardState.title}
+                </div>
+                <div class="card__author">
+                    ${this.cardState.author_name ? this.cardState.author_name[0] : 'Not defined'}
+                </div>
+                <div class="card__footer">
+                    <button class="button__add ${exsistInFavorites ? 'button__active' : ''}">
+                        ${exsistInFavorites ? '<img src="/static/favorite-black.svg">' : '<img src="/static/favorite-white.svg">' }
+                    </button>
+                </div>
+            </div>
+        `;
+
+            if (exsistInFavorites) {
+                this.el
+                    .querySelector('button')
+                    .addEventListener('click', this.#deleteFromFavorites.bind(this));
+            } else {
+                this.el
+                    .querySelector('button')
+                    .addEventListener('click', this.#addToFavorites.bind(this));
+            }
+            return this.el;
+        }
+    }
+
+    class CardList extends DivComponent{
+        constructor(appState, parentState) {
+            super();
+            this.appState = appState;
+            this.parentState = parentState;
+        }
+
+        render() {
+            if (this.parentState.loading) {
+                this.el.innerHTML = `
+                <div class="card_grid__loader">
+                    Loading...
+                    <img src="/static/loading.gif" alt="loading gif">
+                </div>
+            `;
+                return this.el;
+            }
+
+            const cardGrid = document.createElement('div');
+            cardGrid.classList.add('card_grid');
+            this.el.append(cardGrid);
+
+            for (let card of this.parentState.list) {
+                cardGrid.append(new Card(this.appState, card).render());
+            }
+            return this.el;
+        }
+    }
+
+    class FavoritesView extends AbstractView {
+        constructor(appState) {
+            super();
+            this.appState = appState;
+            this.appState = onChange(this.appState, this.appStateHook.bind(this));
+            this.setTitle('My books');
+        }
+
+        destroy() {
+            onChange.unsubscribe(this.appState);
+        }
+
+        appStateHook(path) {
+            if (path === 'favorites') {
+                this.render();
+            }
+        }
+
+        render() {
+            const main = document.createElement('div');
+            main.innerHTML = `
+            <h1 class="card__header">
+                Favorite books
+            </h1>
+        `;
+            main.append(new CardList(this.appState, { list: this.appState.favorites }).render());
+            this.app.innerHTML = '';
+            this.app.append(main);
+            this.renderHeader();
+        }
+
+        renderHeader() {
+            const header = new Header(this.appState).render();
+            this.app.prepend(header);
+        }
+    }
+
     class Search extends DivComponent{
         constructor(state) {
             super();
@@ -1186,6 +1307,7 @@
     class MainView extends AbstractView {
         state = {
             list: [],
+            numFound: 0,
             loading: false,
             searchQuery: undefined,
             offset: 0
@@ -1199,9 +1321,14 @@
             this.setTitle('Book search');
         }
 
+        destroy() {
+            onChange.unsubscribe(this.appState);
+            onChange.unsubscribe(this.state);
+        }
+
         appStateHook(path) {
             if (path === 'favorites') {
-                console.log(path);
+                this.render();
             }
         }
 
@@ -1211,7 +1338,12 @@
                 const data = await this.loadList(this.state.searchQuery, this.state.offset);
                 this.state.loading = false;
                 console.log(data);
+                this.state.numFound = data.numFound;
                 this.state.list = data.docs;
+            }
+
+            if (path === 'list' || path === 'loading') {
+                this.render();
             }
         }
 
@@ -1222,7 +1354,13 @@
 
         render() {
             const main = document.createElement('div');
-            main.append(new Search(this.state).render());
+            main.innerHTML = `
+            <h1 class="card__header">
+                Find ${this.state.numFound} books
+            </h1>
+        `;
+            main.prepend(new Search(this.state).render());
+            main.append(new CardList(this.appState, this.state).render());
             this.app.innerHTML = '';
             this.app.append(main);
             this.renderHeader();
@@ -1236,7 +1374,8 @@
 
     class App {
         routes = [
-            { path: "", view: MainView } 
+            { path: "", view: MainView },
+            { path: "#favorites", view: FavoritesView }
         ];
 
         appState = {
